@@ -3,8 +3,10 @@
 	handlers = require('./handlers'),
 	routes = require('./routes'),
 	https=require('https'),
+	cluster = require('cluster');
 	fs = require('fs');
   
+  var numCPUs = require('os').cpus().length;
   
   var options = {
   //certificate name SecureNodeFileUpload
@@ -13,4 +15,15 @@
 };
 //download files
 routes(app,handlers)
+if (cluster.isMaster) {
+  // Fork workers.
+  for (var i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('exit', function(worker, code, signal) {
+    console.log('worker ' + worker.process.pid + ' died');
+  });
+} else {
 https.createServer(options,app).listen(7000);
+}
